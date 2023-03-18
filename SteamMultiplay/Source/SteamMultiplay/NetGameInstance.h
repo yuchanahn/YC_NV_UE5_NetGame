@@ -22,7 +22,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "YCSteamMultiplay")
 	void CreateSession(FString InServerName);
-	void AcceptedEv(bool bArg, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId, const FOnlineSessionSearchResult& OnlineSessionSearchResult);
+	void AcceptedEv(bool bSuccess, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId, const FOnlineSessionSearchResult& OnlineSessionSearchResult);
+	void JoinSessionEv(FName Name, EOnJoinSessionCompleteResult::Type Arg);
 	virtual void Init() override;
 
 	IOnlineSessionPtr Session;

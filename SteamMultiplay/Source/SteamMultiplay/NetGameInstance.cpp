@@ -9,12 +9,10 @@
 
 
 const static FName SESSION_NAME = NAME_GameSession; //TEXT("GameSession");
-const static FName SERVER_NAME_SETTING_KEY = TEXT("ServerName");
 
 
 void UNetGameInstance::CreateSessionEv(const FName InName, bool bArg) {
-	std::string Name = TCHAR_TO_UTF8(*InName.ToString());
-	Util::LogDisplay(std::format("CreateSessionEv: {}, result : {}", Name, bArg));
+	Util::LogDisplay(std::format("CreateSessionEv: {}, result : {}", InName, bArg));
 }
 
 void UNetGameInstance::CreateSession(const FString InServerName) {
@@ -27,7 +25,7 @@ void UNetGameInstance::CreateSession(const FString InServerName) {
 	SessionSettings.bShouldAdvertise = true;
 	SessionSettings.bUsesPresence = true;
 	SessionSettings.bUseLobbiesIfAvailable = true;
-	SessionSettings.Set(SERVER_NAME_SETTING_KEY, InServerName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+	//SessionSettings.Set(SERVER_NAME_SETTING_KEY, InServerName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
 	//스팀 초대 구현부
 	SessionSettings.bAllowInvites = false;
@@ -37,15 +35,37 @@ void UNetGameInstance::CreateSession(const FString InServerName) {
 	Session->CreateSession(0, SESSION_NAME, SessionSettings);
 }
 
-void UNetGameInstance::AcceptedEv(bool bArg, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId,
+void UNetGameInstance::AcceptedEv(bool bSuccess, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId,
 	const FOnlineSessionSearchResult& OnlineSessionSearchResult) {
 	if(OnlineSessionSearchResult.IsValid()) {
-		auto Name = TCHAR_TO_UTF8(*OnlineSessionSearchResult.Session.OwningUserName);
-		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bArg));
-		Util::LogDisplay(std::format("Session Name {}", Name));
+		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bSuccess));
+		Util::LogDisplay(std::format("Session Name {}", OnlineSessionSearchResult.Session.OwningUserName));
+		Util::LogDisplay(std::format("Session MSessionName {}", SESSION_NAME.ToString()));
+		Session->JoinSession(0, SESSION_NAME, OnlineSessionSearchResult);
 	} else {
-		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bArg));
+		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bSuccess));
 	}
+}
+
+void UNetGameInstance::JoinSessionEv(FName Name, EOnJoinSessionCompleteResult::Type Arg) {
+	if (!Session.IsValid()) return;
+
+	FString Address;
+	if (!Session->GetResolvedConnectString(Name, Address))
+	{
+		Util::LogDisplay("Could not get connect string.");
+		return;
+	}
+
+	Util::LogDisplay(std::format("Joining {}", Address));
+
+	APlayerController* PlayerController = GetFirstLocalPlayerController();
+	if (!ensure(PlayerController != nullptr)) {
+		Util::LogDisplay("PlayerController is nullptr");
+		return;
+	}
+
+	PlayerController->ClientTravel(Address, TRAVEL_Absolute);
 }
 
 void UNetGameInstance::Init() {
@@ -61,7 +81,7 @@ void UNetGameInstance::Init() {
 			Session->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
 			//SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &OnDestroySessionComplete);
 			//SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &OnFindSessionComplete);
-			//SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &OnJoinSessionComplete);
+			Session->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
 			//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
 			Session->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
 		}
