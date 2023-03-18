@@ -40,7 +40,7 @@ void UNetGameInstance::CreateSession(const FString InServerName) {
 void UNetGameInstance::Init() {
 	Super::Init();
 
-	const IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get();
+	const IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get("Steam");
 	if (Subsystem != nullptr)
 	{
 		Util::LogDisplay("Subsystem Start!");
@@ -57,7 +57,7 @@ void UNetGameInstance::Init() {
 	}
 	else
 	{
-		Util::LogDisplay("Found No subsystem");
+		Util::LogDisplay("Steam subsystem not found!\n스팀을 켜라!");
 	}
 	
 	if (GEngine != nullptr)
