@@ -4,6 +4,7 @@
 #include "NetGameInstance.h"
 #include "OnlineSubsystem.h"
 #include "Util.h"
+#include "Kismet/GameplayStatics.h"
 
 #include <format>
 
@@ -13,12 +14,13 @@ const static FName SESSION_NAME = NAME_GameSession; //TEXT("GameSession");
 
 void UNetGameInstance::CreateSessionEv(const FName InName, bool bArg) {
 	Util::LogDisplay(std::format("CreateSessionEv: {}, result : {}", InName, bArg));
-	GetWorld()->ServerTravel("/Game/Maps/Level_Gameplay?listen");
+
+	//GetWorld()->ServerTravel()
+	UGameplayStatics::OpenLevel(GetWorld(), TEXT("/Game/Maps/Level_Gameplay.Level_Gameplay"), true, TEXT("listen"));
 }
 
 void UNetGameInstance::CreateSession(const FString InServerName) {
 	if (!Session.IsValid()) return;
-	
 	FOnlineSessionSettings SessionSettings;
 	
 	SessionSettings.bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL";
@@ -70,6 +72,10 @@ void UNetGameInstance::JoinSessionEv(FName Name, EOnJoinSessionCompleteResult::T
 	PlayerController->ClientTravel(Address, TRAVEL_Absolute);
 }
 
+void UNetGameInstance::DestroySessionEv(FName Name, bool bArg) {
+	Util::LogDisplay(std::format("DestroySessionEv: {}, result : {}", Name, bArg));
+}
+
 void UNetGameInstance::Init() {
 	Super::Init();
 
@@ -81,7 +87,8 @@ void UNetGameInstance::Init() {
 		if (Session.IsValid())
 		{
 			Session->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
-			//SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &OnDestroySessionComplete);
+			Session->OnDestroySessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
+			Session->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
 			//SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &OnFindSessionComplete);
 			Session->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
 			//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);

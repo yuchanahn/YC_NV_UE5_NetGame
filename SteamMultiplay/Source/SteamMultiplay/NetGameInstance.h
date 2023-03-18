@@ -24,6 +24,7 @@ public:
 	void CreateSession(FString InServerName);
 	void AcceptedEv(bool bSuccess, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId, const FOnlineSessionSearchResult& OnlineSessionSearchResult);
 	void JoinSessionEv(FName Name, EOnJoinSessionCompleteResult::Type Arg);
+	void DestroySessionEv(FName Name, bool bArg);
 	virtual void Init() override;
 
 	IOnlineSessionPtr Session;
