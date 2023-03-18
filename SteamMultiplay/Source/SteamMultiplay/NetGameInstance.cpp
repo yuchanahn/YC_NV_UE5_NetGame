@@ -13,6 +13,7 @@ const static FName SESSION_NAME = NAME_GameSession; //TEXT("GameSession");
 
 void UNetGameInstance::CreateSessionEv(const FName InName, bool bArg) {
 	Util::LogDisplay(std::format("CreateSessionEv: {}, result : {}", InName, bArg));
+	GetWorld()->ServerTravel("/Game/Maps/Level_Gameplay?listen");
 }
 
 void UNetGameInstance::CreateSession(const FString InServerName) {
@@ -41,6 +42,7 @@ void UNetGameInstance::AcceptedEv(bool bSuccess, int I, TSharedPtr<const FUnique
 		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bSuccess));
 		Util::LogDisplay(std::format("Session Name {}", OnlineSessionSearchResult.Session.OwningUserName));
 		Util::LogDisplay(std::format("Session MSessionName {}", SESSION_NAME.ToString()));
+		
 		Session->JoinSession(0, SESSION_NAME, OnlineSessionSearchResult);
 	} else {
 		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bSuccess));
