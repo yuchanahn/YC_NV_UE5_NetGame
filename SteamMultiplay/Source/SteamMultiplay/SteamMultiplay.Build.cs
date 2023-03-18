@@ -8,6 +8,12 @@ public class SteamMultiplay : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		PrivateDependencyModuleNames.AddRange(new string[] {
+			"OnlineSubsystem",
+			"OnlineSubsystemNull",
+			"OnlineSubsystemSteam",
+		});
+		
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core", 
@@ -17,8 +23,6 @@ public class SteamMultiplay : ModuleRules
 			"HeadMountedDisplay", 
 			"EnhancedInput", 
 			"UMG", 
-			"OnlineSubsystem", 
-			"OnlineSubsystemSteam"
 		});
 		
 		CppStandard = CppStandardVersion.Latest;
