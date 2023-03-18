@@ -18,3 +18,7 @@ void Util::Log(const std::string& Message) {
 void Util::LogDisplay(const std::string& Message, const int LogTime) {
 	GEngine->AddOnScreenDebugMessage(-1, LogTime, FColor::Red, Message.c_str());
 }
+
+void Util::LogDisplay(const std::wstring& Message, const int LogTime) {
+	GEngine->AddOnScreenDebugMessage(-1, LogTime, FColor::Red, Message.c_str());
+}
