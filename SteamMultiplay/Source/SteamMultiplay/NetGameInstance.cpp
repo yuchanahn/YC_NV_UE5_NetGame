@@ -18,6 +18,8 @@ void UNetGameInstance::CreateSessionEv(const FName InName, bool bArg) {
 
 	//GetWorld()->ServerTravel()
 	UGameplayStatics::OpenLevel(GetWorld(), TEXT("/Game/Maps/Level_Gameplay.Level_Gameplay"), true, TEXT("listen"));
+
+	ExternalUI->ShowInviteUI(0, SESSION_NAME);
 }
 
 void UNetGameInstance::CreateSession(const FString InServerName) {
@@ -38,8 +40,6 @@ void UNetGameInstance::CreateSession(const FString InServerName) {
 	SessionSettings.bAllowJoinInProgress = true;
 
 	Session->CreateSession(0, SESSION_NAME, SessionSettings);
-
-	// ExternalUI->ShowInviteUI(0, SESSION_NAME);
 }
 
 void UNetGameInstance::AcceptedEv(bool bSuccess, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId,
@@ -80,52 +80,52 @@ void UNetGameInstance::DestroySessionEv(FName Name, bool bArg) {
 	Util::LogDisplay(std::format("DestroySessionEv: {}, result : {}", Name, bArg));
 }
 
+void UNetGameInstance::LoginCompleteEv(int I, bool bArg, const FUniqueNetId& UniqueNetId, const FString& String)
+{
+	Util::LogDisplay(L"Logged in!");
+	
+	ExternalUI = Subsystem->GetExternalUIInterface();
+	
+	Session = Subsystem->GetSessionInterface();
+	if (Session.IsValid())
+	{
+		Session->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
+		Session->OnDestroySessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
+		Session->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
+		//SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &OnFindSessionComplete);
+		Session->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
+		//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
+		Session->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
+	}
+}
+
 void UNetGameInstance::Init() {
 	Super::Init();
 
-	const IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get();
+	Subsystem = IOnlineSubsystem::Get();
 	if (Subsystem != nullptr)
 	{
 		Util::LogDisplay("Subsystem Start!");
 		Util::LogDisplay(std::format("{}", Subsystem->GetSubsystemName()));
-		
-		Session = Subsystem->GetSessionInterface();
-		if (Session.IsValid())
-		{
-			Session->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
-			Session->OnDestroySessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
-			Session->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
-			//SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &OnFindSessionComplete);
-			Session->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
-			//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
-			Session->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
-		}
 
 		// check login
-		bool bIsLoggedIn = false;
 		if (const IOnlineIdentityPtr Identity = Subsystem->GetIdentityInterface())
 		{
-			switch (Identity->GetLoginStatus(0))
-			{
-				break; case ELoginStatus::LoggedIn: bIsLoggedIn = true;
-				break; case ELoginStatus::NotLoggedIn: bIsLoggedIn = false;
-				break; default: bIsLoggedIn = false;
-			}
-
-			// ???
-			Identity->ClearOnLoginCompleteDelegates(0, this);
-		}
-
-		if (bIsLoggedIn)
-		{
-			// ExternalUI = Subsystem->GetExternalUIInterface();
-			// check(ExternalUI != nullptr);
+			Identity->OnLoginCompleteDelegates->AddUObject(this, &UNetGameInstance::LoginCompleteEv);
 			
-			Util::LogDisplay(L"Logged in!");
-		}
-		else
-		{
-			Util::LogDisplay(L"Not logged in!");	
+			FOnlineAccountCredentials Credentials;
+			Credentials.Type = FString("AccountPortal");
+			Credentials.Id = "";
+			Credentials.Token = "";
+			
+			if (Identity->Login(0, Credentials))
+			{
+				Util::LogDisplay("Try Login");
+			}
+			else
+			{
+				Util::LogDisplay("Try Login Failed");
+			}
 		}
 	}
 	else
