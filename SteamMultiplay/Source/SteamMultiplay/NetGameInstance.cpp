@@ -25,6 +25,8 @@ void UNetGameInstance::CreateSessionEv(const FName InName, bool bArg) {
 void UNetGameInstance::CreateSession(const FString InServerName) {
 	if (!Session.IsValid()) return;
 	FOnlineSessionSettings SessionSettings;
+
+
 	
 	SessionSettings.bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL";
 	SessionSettings.NumPublicConnections = 5;
@@ -32,6 +34,7 @@ void UNetGameInstance::CreateSession(const FString InServerName) {
 	SessionSettings.bUsesPresence = true;
 	SessionSettings.bUseLobbiesIfAvailable = true;
 	SessionSettings.BuildUniqueId = 1;
+	SessionSettings.bIsDedicated = false;
 	//SessionSettings.Set(SERVER_NAME_SETTING_KEY, InServerName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
 	//스팀 초대 구현부
@@ -92,8 +95,9 @@ void UNetGameInstance::FindSessions(int32 MaxSearchResults)
 	LastSessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
 	LastSessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 
-	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-	if (!Session->FindSessions(*LocalPlayer->GetPreferredUniqueNetId(), LastSessionSearch.ToSharedRef()))
+	
+	//const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	if (!Session->FindSessions(0, LastSessionSearch.ToSharedRef()))
 	{
 		Util::LogDisplay("Could not find sessions.");
 	}
@@ -101,8 +105,14 @@ void UNetGameInstance::FindSessions(int32 MaxSearchResults)
 
 void UNetGameInstance::FindSesstionEv(bool bArg) {
 	Util::LogDisplay("find sessions!");
-	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-	Session->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), SESSION_NAME, LastSessionSearch->SearchResults[0]);
+
+	if(!bArg) {
+		Util::LogDisplay("find sessions fail!");
+		return;
+	}
+	Util::LogDisplay(std::format("Num : {}", LastSessionSearch->SearchResults.Num()));
+	
+	//Session->JoinSession(0, SESSION_NAME, LastSessionSearch->SearchResults[0]);
 }
 
 
