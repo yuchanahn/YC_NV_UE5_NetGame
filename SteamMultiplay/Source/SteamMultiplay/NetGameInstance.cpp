@@ -80,6 +80,32 @@ void UNetGameInstance::DestroySessionEv(FName Name, bool bArg) {
 	Util::LogDisplay(std::format("DestroySessionEv: {}, result : {}", Name, bArg));
 }
 
+void UNetGameInstance::FindSessions(int32 MaxSearchResults)
+{
+	if (!Session.IsValid())
+	{
+		return;
+	}
+
+	LastSessionSearch = MakeShareable(new FOnlineSessionSearch());
+	LastSessionSearch->MaxSearchResults = MaxSearchResults;
+	LastSessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
+	LastSessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
+
+	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	if (!Session->FindSessions(*LocalPlayer->GetPreferredUniqueNetId(), LastSessionSearch.ToSharedRef()))
+	{
+		Util::LogDisplay("Could not find sessions.");
+	}
+}
+
+void UNetGameInstance::FindSesstionEv(bool bArg) {
+	Util::LogDisplay("find sessions!");
+	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	Session->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), SESSION_NAME, LastSessionSearch->SearchResults[0]);
+}
+
+
 void UNetGameInstance::LoginCompleteEv(int I, bool bArg, const FUniqueNetId& UniqueNetId, const FString& String)
 {
 	Util::LogDisplay(L"Logged in!");
@@ -92,7 +118,7 @@ void UNetGameInstance::LoginCompleteEv(int I, bool bArg, const FUniqueNetId& Uni
 		Session->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
 		Session->OnDestroySessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
 		Session->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
-		//SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &OnFindSessionComplete);
+		Session->OnFindSessionsCompleteDelegates.AddUObject(this, &UNetGameInstance::FindSesstionEv);
 		Session->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
 		//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
 		Session->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);

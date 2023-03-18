@@ -25,10 +25,16 @@ public:
 	void AcceptedEv(bool bSuccess, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId, const FOnlineSessionSearchResult& OnlineSessionSearchResult);
 	void JoinSessionEv(FName Name, EOnJoinSessionCompleteResult::Type Arg);
 	void DestroySessionEv(FName Name, bool bArg);
+
+	UFUNCTION(BlueprintCallable, Category = "YCSteamMultiplay")
+	void FindSessions(int32 MaxSearchResults);
+
+	void FindSesstionEv(bool bArg);
 	void LoginCompleteEv(int I, bool bArg, const FUniqueNetId& UniqueNetId, const FString& String);
 	virtual void Init() override;
 
 	IOnlineSubsystem* Subsystem;
 	IOnlineSessionPtr Session;
 	IOnlineExternalUIPtr ExternalUI;
+	TSharedPtr<FOnlineSessionSearch> LastSessionSearch;
 };
