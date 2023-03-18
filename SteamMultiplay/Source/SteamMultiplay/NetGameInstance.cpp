@@ -5,6 +5,7 @@
 #include "OnlineSubsystem.h"
 #include "Util.h"
 #include "Kismet/GameplayStatics.h"
+#include "Interfaces/OnlineExternalUIInterface.h"
 
 #include <format>
 
@@ -28,6 +29,7 @@ void UNetGameInstance::CreateSession(const FString InServerName) {
 	SessionSettings.bShouldAdvertise = true;
 	SessionSettings.bUsesPresence = true;
 	SessionSettings.bUseLobbiesIfAvailable = true;
+	SessionSettings.BuildUniqueId = 1;
 	//SessionSettings.Set(SERVER_NAME_SETTING_KEY, InServerName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
 	//스팀 초대 구현부
@@ -36,6 +38,8 @@ void UNetGameInstance::CreateSession(const FString InServerName) {
 	SessionSettings.bAllowJoinInProgress = true;
 
 	Session->CreateSession(0, SESSION_NAME, SessionSettings);
+
+	// ExternalUI->ShowInviteUI(0, SESSION_NAME);
 }
 
 void UNetGameInstance::AcceptedEv(bool bSuccess, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId,
@@ -79,10 +83,12 @@ void UNetGameInstance::DestroySessionEv(FName Name, bool bArg) {
 void UNetGameInstance::Init() {
 	Super::Init();
 
-	const IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get("Steam");
+	const IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get();
 	if (Subsystem != nullptr)
 	{
 		Util::LogDisplay("Subsystem Start!");
+		Util::LogDisplay(std::format("{}", Subsystem->GetSubsystemName()));
+		
 		Session = Subsystem->GetSessionInterface();
 		if (Session.IsValid())
 		{
@@ -94,10 +100,37 @@ void UNetGameInstance::Init() {
 			//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
 			Session->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
 		}
+
+		// check login
+		bool bIsLoggedIn = false;
+		if (const IOnlineIdentityPtr Identity = Subsystem->GetIdentityInterface())
+		{
+			switch (Identity->GetLoginStatus(0))
+			{
+				break; case ELoginStatus::LoggedIn: bIsLoggedIn = true;
+				break; case ELoginStatus::NotLoggedIn: bIsLoggedIn = false;
+				break; default: bIsLoggedIn = false;
+			}
+
+			// ???
+			Identity->ClearOnLoginCompleteDelegates(0, this);
+		}
+
+		if (bIsLoggedIn)
+		{
+			// ExternalUI = Subsystem->GetExternalUIInterface();
+			// check(ExternalUI != nullptr);
+			
+			Util::LogDisplay(L"Logged in!");
+		}
+		else
+		{
+			Util::LogDisplay(L"Not logged in!");	
+		}
 	}
 	else
 	{
-		Util::LogDisplay(L"Steam subsystem not found!\n스팀을 켜라!");
+		Util::LogDisplay(L"Online Subsystem not found!");
 	}
 	
 	if (GEngine != nullptr)

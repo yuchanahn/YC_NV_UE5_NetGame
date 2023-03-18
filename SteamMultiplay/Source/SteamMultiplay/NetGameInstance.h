@@ -28,4 +28,5 @@ public:
 	virtual void Init() override;
 
 	IOnlineSessionPtr Session;
+	IOnlineExternalUIPtr ExternalUI;
 };

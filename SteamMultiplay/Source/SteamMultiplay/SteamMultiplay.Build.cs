@@ -12,6 +12,8 @@ public class SteamMultiplay : ModuleRules
 			"OnlineSubsystem",
 			"OnlineSubsystemNull",
 			"OnlineSubsystemSteam",
+			"OnlineSubsystemEOS",
+			"OnlineSubsystemEOSPlus",
 		});
 		
 		PublicDependencyModuleNames.AddRange(new string[]
