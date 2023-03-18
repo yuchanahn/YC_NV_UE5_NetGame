@@ -20,5 +20,7 @@ public class SteamMultiplay : ModuleRules
 			"OnlineSubsystem", 
 			"OnlineSubsystemSteam"
 		});
+		
+		CppStandard = CppStandardVersion.Latest;
 	}
 }

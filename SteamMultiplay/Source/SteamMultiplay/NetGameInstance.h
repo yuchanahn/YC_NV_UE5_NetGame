@@ -18,7 +18,11 @@ class STEAMMULTIPLAY_API UNetGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
+	void CreateSessionEv(FName InName, bool bArg);
+
+	UFUNCTION(BlueprintCallable, Category = "YCSteamMultiplay")
+	void CreateSession(FString InServerName);
 	virtual void Init() override;
 
-	IOnlineSessionPtr SessionInterface;
+	IOnlineSessionPtr Session;
 };
