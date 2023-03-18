@@ -37,6 +37,17 @@ void UNetGameInstance::CreateSession(const FString InServerName) {
 	Session->CreateSession(0, SESSION_NAME, SessionSettings);
 }
 
+void UNetGameInstance::AcceptedEv(bool bArg, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId,
+	const FOnlineSessionSearchResult& OnlineSessionSearchResult) {
+	if(OnlineSessionSearchResult.IsValid()) {
+		auto Name = TCHAR_TO_UTF8(*OnlineSessionSearchResult.Session.OwningUserName);
+		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bArg));
+		Util::LogDisplay(std::format("Session Name {}", Name));
+	} else {
+		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bArg));
+	}
+}
+
 void UNetGameInstance::Init() {
 	Super::Init();
 
@@ -52,12 +63,12 @@ void UNetGameInstance::Init() {
 			//SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &OnFindSessionComplete);
 			//SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &OnJoinSessionComplete);
 			//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
-			//SessionInterface->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &OnSessionUserInviteAccepted);
+			Session->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
 		}
 	}
 	else
 	{
-		Util::LogDisplay("Steam subsystem not found!\n스팀을 켜라!");
+		Util::LogDisplay(L"Steam subsystem not found!\n스팀을 켜라!");
 	}
 	
 	if (GEngine != nullptr)
