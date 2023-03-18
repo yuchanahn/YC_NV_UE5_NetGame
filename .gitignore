@@ -1,5 +1,18 @@
+### Rider ###
+.idea/
+
 # Visual Studio 2015 user specific files
 .vs/
+.vsconfig
+
+
+# custom
+*/Build
+*/DerivedDataCache
+*/Intermediate
+*/Saved
+*.suo
+*.db
 
 # Compiled Object files
 *.slo
@@ -15,6 +28,7 @@
 *.so
 *.dylib
 *.dll
+*.pdb
 
 # Fortran module files
 *.mod
@@ -72,3 +86,10 @@ Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+Content/StarterContent/HDRI/HDRI_Epic_Courtyard_Daylight.uasset
+
+Config/DefaultEngine.ini
+
+Platforms/*
+Content/StarterContent/Architecture/Floor_400x400.uasset
+Content/StarterContent/HDRI/HDRI_Epic_Courtyard_Daylight.uasset
