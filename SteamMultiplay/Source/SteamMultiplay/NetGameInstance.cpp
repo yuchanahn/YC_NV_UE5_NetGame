@@ -21,24 +21,27 @@ void UNetGameInstance::Init()
 
 	InitOnlineSubsystem();
 
-	if (GEngine != nullptr)
+	if (CurrentSubsystemName != "" && CurrentSubsystemName != "NULL")
 	{
-		GEngine->OnNetworkFailure().AddUObject(this, &UNetGameInstance::NetworkFailEv);
+		Util::LogDisplay(Login() ? "Login: Success" : "Login: Failed");
+	}
+
+	if (GEngine)
+	{
+		GEngine->OnNetworkFailure().AddUObject(this, &UNetGameInstance::NetworkFailureEv);
 	}
 }
 
 bool UNetGameInstance::InitOnlineSubsystem()
 {
 	Subsystem = IOnlineSubsystem::Get();
-	if (Subsystem != nullptr)
+	if (Subsystem)
 	{
 		CurrentSubsystemName = Subsystem->GetSubsystemName();
 
 		Util::LogDisplay(std::format("Subsystem started : {}", CurrentSubsystemName));
 
 		InitSessionInterfaceDelegates();
-
-		Util::LogDisplay(Login() ? L"Login: Success" : L"Login: Failed");
 
 		return true;
 	}
@@ -52,21 +55,16 @@ bool UNetGameInstance::InitOnlineSubsystem()
 
 void UNetGameInstance::InitSessionInterfaceDelegates()
 {
-	// FIXME: 여러번 등록됨
-	if (!SessionInterface.IsValid())
+	SessionInterface = Subsystem->GetSessionInterface();
+	if (SessionInterface.IsValid())
 	{
-		Util::LogDisplay(L"SessionInterface is not valid!");
-		SessionInterface = Subsystem->GetSessionInterface();
-		if (SessionInterface.IsValid())
-		{
-			SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
-			SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
-			SessionInterface->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
-			SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UNetGameInstance::FindSessionEv);
-			SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
-			//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
-			SessionInterface->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
-		}
+		SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
+		SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
+		SessionInterface->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
+		SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UNetGameInstance::FindSessionEv);
+		SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
+		//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
+		SessionInterface->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
 	}
 }
 
@@ -97,7 +95,10 @@ void UNetGameInstance::CreateSessionEv(const FName InName, bool bArg)
 
 	UGameplayStatics::OpenLevel(GetWorld(), TEXT("/Game/Maps/Level_Gameplay.Level_Gameplay"), true, TEXT("listen"));
 
-	ExternalUI->ShowInviteUI(0, SESSION_NAME);
+	if (bIsLoggedIn)
+	{
+		ExternalUI->ShowInviteUI(0, SESSION_NAME);
+	}
 }
 
 void UNetGameInstance::DestroySessionEv(FName Name, bool bArg)
@@ -105,20 +106,25 @@ void UNetGameInstance::DestroySessionEv(FName Name, bool bArg)
 	Util::LogDisplay(std::format("DestroySessionEv: {}, result : {}", Name, bArg));
 }
 
-void UNetGameInstance::AcceptedEv(bool bSuccess, int I, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId,
+void UNetGameInstance::AcceptedEv(bool bWasSuccessful, int I,
+                                  TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId,
                                   const FOnlineSessionSearchResult& OnlineSessionSearchResult)
 {
+	if (!bWasSuccessful)
+	{
+		Util::LogDisplay("OnSessionUserInviteAccepted failed!");
+		return;
+	}
+
 	if (OnlineSessionSearchResult.IsValid())
 	{
-		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bSuccess));
-		Util::LogDisplay(std::format("Session Name {}", OnlineSessionSearchResult.Session.OwningUserName));
-		Util::LogDisplay(std::format("Session MSessionName {}", SESSION_NAME.ToString()));
+		Util::LogDisplay(std::format("Session Name : {}", OnlineSessionSearchResult.Session.OwningUserName));
 
 		SessionInterface->JoinSession(0, SESSION_NAME, OnlineSessionSearchResult);
 	}
 	else
 	{
-		Util::LogDisplay(std::format("AcceptedEv: {}, result : {}", I, bSuccess));
+		Util::LogDisplay("OnlineSessionSearchResult is not valid!");
 	}
 }
 
@@ -129,14 +135,14 @@ void UNetGameInstance::JoinSessionEv(FName Name, EOnJoinSessionCompleteResult::T
 	FString Address;
 	if (!SessionInterface->GetResolvedConnectString(Name, Address))
 	{
-		Util::LogDisplay("Could not get connect string.");
+		Util::LogDisplay("Failed to get Address");
 		return;
 	}
 
-	Util::LogDisplay(std::format("Joining {}", Address));
+	Util::LogDisplay(std::format("Joining [{}] : {}", Name, Address));
 
 	APlayerController* PlayerController = GetFirstLocalPlayerController();
-	if (!ensure(PlayerController != nullptr))
+	if (!PlayerController)
 	{
 		Util::LogDisplay("PlayerController is nullptr");
 		return;
@@ -160,26 +166,19 @@ void UNetGameInstance::FindSessions(int32 MaxSearchResults)
 	}
 }
 
-void UNetGameInstance::FindSessionEv(bool bArg)
+void UNetGameInstance::FindSessionEv(bool bWasSuccessful)
 {
-	Util::LogDisplay("find sessions!");
-
-	if (!bArg)
+	if (!bWasSuccessful)
 	{
-		Util::LogDisplay("find sessions fail!");
+		Util::LogDisplay("FindSession failed!");
 		return;
 	}
-	Util::LogDisplay(std::format("Num : {}", LastSessionSearch->SearchResults.Num()));
+
+	Util::LogDisplay(std::format("Session search results count : {}", LastSessionSearch->SearchResults.Num()));
+
 	if (LastSessionSearch->SearchResults.Num() > 0)
 	{
-		if (SessionInterface->JoinSession(0, SESSION_NAME, LastSessionSearch->SearchResults[0]))
-		{
-			Util::LogDisplay(std::format("JoinSessionEv: {}, result : {}", SESSION_NAME, true));
-		}
-	}
-	else
-	{
-		Util::LogDisplay("Could not find sessions.");
+		SessionInterface->JoinSession(0, SESSION_NAME, LastSessionSearch->SearchResults[0]);
 	}
 }
 
@@ -187,38 +186,52 @@ bool UNetGameInstance::Login(FString EpicID)
 {
 	if (const IOnlineIdentityPtr Identity = Subsystem->GetIdentityInterface())
 	{
+		// Check login status
 		const ELoginStatus::Type LoginStatus = Identity->GetLoginStatus(0);
 		if (LoginStatus == ELoginStatus::Type::LoggedIn)
 		{
-			// FIXME: ???
+			Util::LogDisplay("Trying to login while already logged in");
+			bIsLoggedIn = true;
 			return true;
 		}
 
-		// TODO: 이것도 한번만 등록
-		Identity->OnLoginCompleteDelegates->AddUObject(this, &UNetGameInstance::LoginCompleteEv);
+		if (!Identity->OnLoginCompleteDelegates->IsBound())
+		{
+			Identity->OnLoginCompleteDelegates->AddUObject(this, &UNetGameInstance::LoginCompleteEv);
+		}
 
+		// Get Steam User
 		ISteamUser* User = SteamUser();
 		if (User == nullptr)
 		{
+			Util::LogDisplay("Unable to get SteamUser");
+			bIsLoggedIn = false;
 			return false;
 		}
 
+		// Get Steam User ID
 		const uint32 CrossPlatformID = User->GetSteamID().GetAccountID();
 
+		// Use Cross Platform ID (Steam) for EOSPlus
 		FOnlineAccountCredentials Credentials;
-		// Credentials.Type = FString("Developer");
-		// Credentials.Id = FString("3.34.51.212:7788");
-		// Credentials.Token = EpicID;
 		Credentials.Type = FString("EXTERNAL");
 		Credentials.Id = FString::FromInt(CrossPlatformID);
 
+		// Epic games auto login
+		// Credentials.Type = FString("Developer");
+		// Credentials.Id = FString("3.34.51.212:7788");
+		// Credentials.Token = EpicID;
+
+		// Try login
 		if (Identity->Login(0, Credentials))
 		{
+			bIsLoggedIn = true;
 			PostLogin();
 			return true;
 		}
 	}
 
+	bIsLoggedIn = false;
 	return false;
 }
 
@@ -230,25 +243,26 @@ void UNetGameInstance::PostLogin()
 // Login Button Press Event
 void UNetGameInstance::LoginStart(FString ID)
 {
-	if (CurrentSubsystemName == "" || CurrentSubsystemName == "NULL")
+	if (CurrentSubsystemName != "" && CurrentSubsystemName != "NULL")
 	{
-		IOnlineSubsystem::ReloadDefaultSubsystem();
-		SteamAPI_Init();
-	}
-
-	if (InitOnlineSubsystem() && CurrentSubsystemName != "NULL")
-	{
-		Util::LogDisplay(Login(ID) ? L"Login: Success" : L"Login: Failed");
+		Util::LogDisplay(Login(ID) ? "Login: Success" : "Login: Failed");
 	}
 }
 
-void UNetGameInstance::LoginCompleteEv(int I, bool bArg, const FUniqueNetId& UniqueNetId, const FString& String)
+void UNetGameInstance::LoginCompleteEv(int LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId,
+                                       const FString& Error)
 {
-	Util::LogDisplay(std::format("Logged in! state : {}", bArg));
+	if (!bWasSuccessful)
+	{
+		Util::LogDisplay(std::format("Error: {}", Error));
+		return;
+	}
+
+	Util::LogDisplay(std::format("Login Complete, UserID: {}", UserId.ToString()));
 }
 
-void UNetGameInstance::NetworkFailEv(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type Arg,
-                                     const FString& String)
+void UNetGameInstance::NetworkFailureEv(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type ErrorType,
+                                        const FString& Error)
 {
-	Util::LogDisplay(std::format("NetworkFail, result : {}", String));
+	Util::LogDisplay(std::format("Network Failure! [{}] : {}", FString(ToString(ErrorType)), Error));
 }
