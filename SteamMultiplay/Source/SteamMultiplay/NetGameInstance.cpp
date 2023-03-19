@@ -25,8 +25,6 @@ void UNetGameInstance::CreateSessionEv(const FName InName, bool bArg) {
 void UNetGameInstance::CreateSession(const FString InServerName) {
 	if (!Session.IsValid()) return;
 	FOnlineSessionSettings SessionSettings;
-
-
 	
 	SessionSettings.bIsLANMatch = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL";
 	SessionSettings.NumPublicConnections = 5;
@@ -85,17 +83,13 @@ void UNetGameInstance::DestroySessionEv(FName Name, bool bArg) {
 
 void UNetGameInstance::FindSessions(int32 MaxSearchResults)
 {
-	if (!Session.IsValid())
-	{
-		return;
-	}
+	if (!Session.IsValid()) return;
 
 	LastSessionSearch = MakeShareable(new FOnlineSessionSearch());
 	LastSessionSearch->MaxSearchResults = MaxSearchResults;
 	LastSessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
 	LastSessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 
-	
 	//const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if (!Session->FindSessions(0, LastSessionSearch.ToSharedRef()))
 	{
@@ -103,7 +97,20 @@ void UNetGameInstance::FindSessions(int32 MaxSearchResults)
 	}
 }
 
-void UNetGameInstance::FindSesstionEv(bool bArg) {
+void UNetGameInstance::LoginStart(FString ID) {
+	// check login
+	if (const IOnlineIdentityPtr Identity = Subsystem->GetIdentityInterface())
+	{
+		Identity->OnLoginCompleteDelegates->AddUObject(this, &UNetGameInstance::LoginCompleteEv);
+		FOnlineAccountCredentials Credentials;
+		Credentials.Type = FString("Developer");
+		Credentials.Id = FString("3.34.51.212:7788");
+		Credentials.Token = ID;
+		Util::LogDisplay(Identity->Login(0, Credentials) ? "Try Login" : "Try Login Failed");
+	}
+}
+
+void UNetGameInstance::FindSessionEv(bool bArg) {
 	Util::LogDisplay("find sessions!");
 
 	if(!bArg) {
@@ -111,14 +118,19 @@ void UNetGameInstance::FindSesstionEv(bool bArg) {
 		return;
 	}
 	Util::LogDisplay(std::format("Num : {}", LastSessionSearch->SearchResults.Num()));
-	
-	//Session->JoinSession(0, SESSION_NAME, LastSessionSearch->SearchResults[0]);
+	if(LastSessionSearch->SearchResults.Num() > 0) {
+		if(Session->JoinSession(0, SESSION_NAME, LastSessionSearch->SearchResults[0])) {
+			Util::LogDisplay(std::format("JoinSessionEv: {}, result : {}", SESSION_NAME, true));
+		}
+	} else {
+		Util::LogDisplay("Could not find sessions.");
+	}
 }
 
 
 void UNetGameInstance::LoginCompleteEv(int I, bool bArg, const FUniqueNetId& UniqueNetId, const FString& String)
 {
-	Util::LogDisplay(L"Logged in!");
+	Util::LogDisplay(std::format("Logged in! state {}", bArg));
 	
 	ExternalUI = Subsystem->GetExternalUIInterface();
 	
@@ -128,11 +140,16 @@ void UNetGameInstance::LoginCompleteEv(int I, bool bArg, const FUniqueNetId& Uni
 		Session->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
 		Session->OnDestroySessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
 		Session->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
-		Session->OnFindSessionsCompleteDelegates.AddUObject(this, &UNetGameInstance::FindSesstionEv);
+		Session->OnFindSessionsCompleteDelegates.AddUObject(this, &UNetGameInstance::FindSessionEv);
 		Session->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
 		//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
 		Session->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
 	}
+}
+
+void UNetGameInstance::NetworkFailEv(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type Arg,
+	const FString& String) {
+	Util::LogDisplay(std::format("NetworkFail, result : {}", String));
 }
 
 void UNetGameInstance::Init() {
@@ -143,26 +160,6 @@ void UNetGameInstance::Init() {
 	{
 		Util::LogDisplay("Subsystem Start!");
 		Util::LogDisplay(std::format("{}", Subsystem->GetSubsystemName()));
-
-		// check login
-		if (const IOnlineIdentityPtr Identity = Subsystem->GetIdentityInterface())
-		{
-			Identity->OnLoginCompleteDelegates->AddUObject(this, &UNetGameInstance::LoginCompleteEv);
-			
-			FOnlineAccountCredentials Credentials;
-			Credentials.Type = FString("AccountPortal");
-			Credentials.Id = "";
-			Credentials.Token = "";
-			
-			if (Identity->Login(0, Credentials))
-			{
-				Util::LogDisplay("Try Login");
-			}
-			else
-			{
-				Util::LogDisplay("Try Login Failed");
-			}
-		}
 	}
 	else
 	{
@@ -171,6 +168,6 @@ void UNetGameInstance::Init() {
 	
 	if (GEngine != nullptr)
 	{
-		//GEngine->OnNetworkFailure().AddUObject(this, &UPuzzlePlatformsGameInstance::OnNetworkFailure);
+		GEngine->OnNetworkFailure().AddUObject(this, &UNetGameInstance::NetworkFailEv);
 	}
 }

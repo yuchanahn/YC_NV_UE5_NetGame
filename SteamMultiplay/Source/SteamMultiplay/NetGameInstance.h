@@ -29,8 +29,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "YCSteamMultiplay")
 	void FindSessions(int32 MaxSearchResults);
 
-	void FindSesstionEv(bool bArg);
+	UFUNCTION(BlueprintCallable, Category = "YCSteamMultiplay")
+	void LoginStart(FString ID);
+
+	void FindSessionEv(bool bArg);
 	void LoginCompleteEv(int I, bool bArg, const FUniqueNetId& UniqueNetId, const FString& String);
+	void NetworkFailEv(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type Arg, const FString& String);
 	virtual void Init() override;
 
 	IOnlineSubsystem* Subsystem;
