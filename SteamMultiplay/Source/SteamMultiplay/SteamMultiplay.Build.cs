@@ -8,7 +8,16 @@ public class SteamMultiplay : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PrivateDependencyModuleNames.AddRange(new string[] {
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"EnhancedInput",
+			"HeadMountedDisplay",
+			"UMG",
+
 			"OnlineSubsystem",
 			"OnlineSubsystemNull",
 			"OnlineSubsystemSteam",
@@ -16,18 +25,7 @@ public class SteamMultiplay : ModuleRules
 			"OnlineSubsystemEOSPlus",
 			"Steamworks",
 		});
-		
-		PublicDependencyModuleNames.AddRange(new string[]
-		{
-			"Core", 
-			"CoreUObject", 
-			"Engine", 
-			"InputCore", 
-			"HeadMountedDisplay", 
-			"EnhancedInput", 
-			"UMG", 
-		});
-		
+
 		CppStandard = CppStandardVersion.Latest;
 	}
 }

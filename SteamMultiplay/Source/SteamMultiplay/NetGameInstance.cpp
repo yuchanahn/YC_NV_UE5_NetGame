@@ -1,15 +1,13 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "NetGameInstance.h"
-#include "OnlineSubsystem.h"
-#include "Util.h"
-#include "Kismet/GameplayStatics.h"
-#include "Interfaces/OnlineExternalUIInterface.h"
+#include <string>
+#include <format>
 
 #include <Steamworks/Steamv153/sdk/public/steam/steam_api.h>
-#include <format>
-#include <string>
+
+#include "OnlineSubsystem.h"
+#include "Kismet/GameplayStatics.h"
+
+#include "Util.h"
+#include "NetGameInstance.h"
 
 
 const static FName SESSION_NAME = NAME_GameSession; //TEXT("GameSession");
@@ -89,26 +87,40 @@ void UNetGameInstance::CreateSession(const FString InServerName)
 	SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings);
 }
 
-void UNetGameInstance::CreateSessionEv(const FName InName, bool bArg)
+void UNetGameInstance::CreateSessionEv(const FName InName, bool bWasSuccessful)
 {
-	Util::LogDisplay(std::format("CreateSessionEv: {}, result : {}", InName, bArg));
+	if (!bWasSuccessful)
+	{
+		Util::LogDisplay("CreateSession failed!");
+		return;
+	}
 
+	Util::LogDisplay(std::format("CreateSession Name : {}", InName));
+
+	// Change level
 	UGameplayStatics::OpenLevel(GetWorld(), TEXT("/Game/Maps/Level_Gameplay.Level_Gameplay"), true, TEXT("listen"));
 
+	// Show invite UI
 	if (bIsLoggedIn)
 	{
 		ExternalUI->ShowInviteUI(0, SESSION_NAME);
 	}
 }
 
-void UNetGameInstance::DestroySessionEv(FName Name, bool bArg)
+void UNetGameInstance::DestroySessionEv(FName Name, bool bWasSuccessful)
 {
-	Util::LogDisplay(std::format("DestroySessionEv: {}, result : {}", Name, bArg));
+	if (!bWasSuccessful)
+	{
+		Util::LogDisplay("DestroySession failed!");
+		return;
+	}
+
+	Util::LogDisplay(std::format("DestroySession Name : {}", Name));
 }
 
-void UNetGameInstance::AcceptedEv(bool bWasSuccessful, int I,
-                                  TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UniqueNetId,
-                                  const FOnlineSessionSearchResult& OnlineSessionSearchResult)
+void UNetGameInstance::AcceptedEv(bool bWasSuccessful, int ControllerId,
+                                  TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UserId,
+                                  const FOnlineSessionSearchResult& InviteResult)
 {
 	if (!bWasSuccessful)
 	{
@@ -116,19 +128,20 @@ void UNetGameInstance::AcceptedEv(bool bWasSuccessful, int I,
 		return;
 	}
 
-	if (OnlineSessionSearchResult.IsValid())
+	if (InviteResult.IsValid())
 	{
-		Util::LogDisplay(std::format("Session Name : {}", OnlineSessionSearchResult.Session.OwningUserName));
+		Util::LogDisplay(std::format("Session Owning User Name : {}",
+		                             InviteResult.Session.OwningUserName));
 
-		SessionInterface->JoinSession(0, SESSION_NAME, OnlineSessionSearchResult);
+		SessionInterface->JoinSession(0, SESSION_NAME, InviteResult);
 	}
 	else
 	{
-		Util::LogDisplay("OnlineSessionSearchResult is not valid!");
+		Util::LogDisplay("InviteResult is not valid!");
 	}
 }
 
-void UNetGameInstance::JoinSessionEv(FName Name, EOnJoinSessionCompleteResult::Type Arg)
+void UNetGameInstance::JoinSessionEv(FName Name, EOnJoinSessionCompleteResult::Type JoinCompleteType)
 {
 	if (!SessionInterface.IsValid()) return;
 
@@ -139,7 +152,7 @@ void UNetGameInstance::JoinSessionEv(FName Name, EOnJoinSessionCompleteResult::T
 		return;
 	}
 
-	Util::LogDisplay(std::format("Joining [{}] : {}", Name, Address));
+	Util::LogDisplay(std::format("Join complete Name : {}, Address : {}", Name, Address));
 
 	APlayerController* PlayerController = GetFirstLocalPlayerController();
 	if (!PlayerController)
@@ -182,7 +195,7 @@ void UNetGameInstance::FindSessionEv(bool bWasSuccessful)
 	}
 }
 
-bool UNetGameInstance::Login(FString EpicID)
+bool UNetGameInstance::Login(FString EpicGamesID)
 {
 	if (const IOnlineIdentityPtr Identity = Subsystem->GetIdentityInterface())
 	{
@@ -214,7 +227,7 @@ bool UNetGameInstance::Login(FString EpicID)
 
 		// Use Cross Platform ID (Steam) for EOSPlus
 		FOnlineAccountCredentials Credentials;
-		Credentials.Type = FString("EXTERNAL");
+		Credentials.Type = FString("External");
 		Credentials.Id = FString::FromInt(CrossPlatformID);
 
 		// Epic games auto login
