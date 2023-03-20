@@ -38,44 +38,44 @@ bool UNetGameInstance::InitOnlineSubsystem()
 	if (Subsystem)
 	{
 		CurrentSubsystemName = Subsystem->GetSubsystemName();
+		InitSessionInterface();
 
-		Util::LogDisplay(std::format("Subsystem started : {}", CurrentSubsystemName));
-
-		InitSessionInterfaceDelegates();
+		Util::LogDisplay(std::format("Subsystem : {}", CurrentSubsystemName));
 
 		return true;
 	}
 
-	// TODO: 여기서 뭔가 더 처리
-	Util::LogDisplay(L"Online Subsystem not found!");
-
+	Util::LogDisplay(L"Error: IOnlineSubsystem::Get() failed!");
 	CurrentSubsystemName = "";
 	return false;
 }
 
-void UNetGameInstance::InitSessionInterfaceDelegates()
+void UNetGameInstance::InitSessionInterface()
 {
 	SessionInterface = Subsystem->GetSessionInterface();
-	if (SessionInterface.IsValid())
+	if (!SessionInterface.IsValid())
 	{
-		SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
-		SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
-		SessionInterface->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
-		SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UNetGameInstance::FindSessionEv);
-		SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
-		//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
-		SessionInterface->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
+		Util::LogDisplay("Error: GetSessionInterface() failed!");
+		return;
 	}
+	
+	SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::CreateSessionEv);
+	SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
+	SessionInterface->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
+	SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UNetGameInstance::FindSessionEv);
+	SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
+	//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
+	SessionInterface->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
 }
 
 void UNetGameInstance::CreateSession(const FString InServerName)
 {
 	if (!SessionInterface.IsValid()) return;
+	
 	FOnlineSessionSettings SessionSettings;
-
-	SessionSettings.bIsLANMatch = Subsystem->GetSubsystemName() == "NULL";
 	SessionSettings.bIsDedicated = false;
-	SessionSettings.NumPublicConnections = 5;
+	SessionSettings.NumPublicConnections = 2;
+	SessionSettings.bIsLANMatch = Subsystem->GetSubsystemName() == "NULL";
 	SessionSettings.bUsesPresence = true;
 	SessionSettings.bUseLobbiesIfAvailable = true;
 	SessionSettings.bShouldAdvertise = true;

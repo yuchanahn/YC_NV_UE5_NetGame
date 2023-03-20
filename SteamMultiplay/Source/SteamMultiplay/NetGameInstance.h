@@ -13,7 +13,7 @@ class STEAMMULTIPLAY_API UNetGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 	bool InitOnlineSubsystem();
-	void InitSessionInterfaceDelegates();
+	void InitSessionInterface();
 
 	bool Login(FString EpicGamesID = "");
 	void PostLogin();
