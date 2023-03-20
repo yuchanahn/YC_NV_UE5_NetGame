@@ -64,7 +64,7 @@ void UNetGameInstance::InitSessionInterface()
 	SessionInterface->OnEndSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::DestroySessionEv);
 	SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UNetGameInstance::FindSessionEv);
 	SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetGameInstance::JoinSessionEv);
-	//SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
+	// SessionInterface->OnSessionInviteReceivedDelegates.AddUObject(this, &OnSessionInviteReceived);
 	SessionInterface->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UNetGameInstance::AcceptedEv);
 }
 
@@ -80,7 +80,6 @@ void UNetGameInstance::CreateSession(const FString InServerName)
 	SessionSettings.bUseLobbiesIfAvailable = true;
 	SessionSettings.bShouldAdvertise = true;
 	SessionSettings.bAllowInvites = false;
-	// SessionSettings.bAllowJoinViaPresenceFriendsOnly = true; // 친구만 가능
 	SessionSettings.bAllowJoinViaPresence = true;
 	SessionSettings.bAllowJoinInProgress = true;
 
