@@ -1,3 +1,5 @@
+#include "NetGameInstance.h"
+
 #include <string>
 #include <format>
 
@@ -7,7 +9,6 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "Util.h"
-#include "NetGameInstance.h"
 
 
 const static FName SESSION_NAME = NAME_GameSession; //TEXT("GameSession");
