@@ -83,8 +83,6 @@ void UNetGameInstance::CreateSession(const FString InServerName)
 	// SessionSettings.bAllowJoinViaPresenceFriendsOnly = true; // 친구만 가능
 	SessionSettings.bAllowJoinViaPresence = true;
 	SessionSettings.bAllowJoinInProgress = true;
-	// SessionSettings.BuildUniqueId = 1;
-	//SessionSettings.Set(SERVER_NAME_SETTING_KEY, InServerName, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 
 	SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings);
 }
