@@ -75,7 +75,7 @@ void UNetGameInstance::CreateSession(const FString InServerName)
 	FOnlineSessionSettings SessionSettings;
 	SessionSettings.bIsDedicated = false;
 	SessionSettings.NumPublicConnections = 2;
-	SessionSettings.bIsLANMatch = Subsystem->GetSubsystemName() == "NULL";
+	SessionSettings.bIsLANMatch = CurrentSubsystemName == "NULL";
 	SessionSettings.bUsesPresence = true;
 	SessionSettings.bUseLobbiesIfAvailable = true;
 	SessionSettings.bShouldAdvertise = true;
@@ -169,7 +169,7 @@ void UNetGameInstance::FindSessions(int32 MaxSearchResults)
 
 	LastSessionSearch = MakeShareable(new FOnlineSessionSearch());
 	LastSessionSearch->MaxSearchResults = MaxSearchResults;
-	LastSessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
+	LastSessionSearch->bIsLanQuery = CurrentSubsystemName == "NULL" ? true : false;
 	LastSessionSearch->QuerySettings.Set(SEARCH_LOBBIES, true, EOnlineComparisonOp::Equals);
 
 	if (!SessionInterface->FindSessions(0, LastSessionSearch.ToSharedRef()))
