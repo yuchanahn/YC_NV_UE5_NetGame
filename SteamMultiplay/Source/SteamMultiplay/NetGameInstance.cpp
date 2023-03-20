@@ -11,7 +11,8 @@
 #include "Util.h"
 
 
-const static FName SESSION_NAME = NAME_GameSession; //TEXT("GameSession");
+// const static FName SESSION_NAME = NAME_GameSession; //TEXT("GameSession");
+const static FName SESSION_NAME = TEXT("YC_Session");
 
 
 void UNetGameInstance::Init()
