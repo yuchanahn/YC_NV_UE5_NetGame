@@ -1,12 +1,9 @@
 #include "NetGameInstance.h"
 
-#include <string>
-#include <format>
-
-#include <Steamworks/Steamv153/sdk/public/steam/steam_api.h>
-
 #include "OnlineSubsystem.h"
 #include "Kismet/GameplayStatics.h"
+
+#include <Steamworks/Steamv153/sdk/public/steam/steam_api.h>
 
 #include "Util.h"
 
@@ -83,7 +80,10 @@ void UNetGameInstance::CreateSession(const FString InServerName)
 	SessionSettings.bAllowJoinViaPresence = true;
 	SessionSettings.bAllowJoinInProgress = true;
 
-	SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings);
+	if (!SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings))
+	{
+		Util::LogDisplay("Failed to create session");
+	}
 }
 
 void UNetGameInstance::CreateSessionEv(const FName InName, bool bWasSuccessful)
@@ -167,6 +167,8 @@ void UNetGameInstance::FindSessions(int32 MaxSearchResults)
 {
 	if (!SessionInterface.IsValid()) return;
 
+	Util::LogDisplay("Finding session...");
+	
 	LastSessionSearch = MakeShareable(new FOnlineSessionSearch());
 	LastSessionSearch->MaxSearchResults = MaxSearchResults;
 	LastSessionSearch->bIsLanQuery = CurrentSubsystemName == "NULL" ? true : false;
