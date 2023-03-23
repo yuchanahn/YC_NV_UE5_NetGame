@@ -8,8 +8,8 @@
 void ACustomPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
-	DOREPLIFETIME(ACustomPlayerState, bDoAttack);
+
+	// DOREPLIFETIME(ACustomPlayerState, bDoAttack);
 }
 
 void ACustomPlayerState::OnDoAttackChange()

@@ -14,7 +14,8 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 public:
-	UPROPERTY(ReplicatedUsing = OnDoAttackChange, BlueprintReadWrite)
+	// UPROPERTY(ReplicatedUsing = OnDoAttackChange, BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite)
 	bool bDoAttack = false;
 
 	UFUNCTION()
